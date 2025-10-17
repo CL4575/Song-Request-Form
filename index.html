@@ -11,11 +11,17 @@
             font-family: 'Inter', sans-serif;
             background-color: #f7fafc;
         }
+        /* Style for the dynamically added fieldset border */
+        .song-group {
+            border-left: 4px solid #3b82f6; /* Blue border */
+            padding-left: 1rem;
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-md bg-white p-8 shadow-2xl rounded-xl border border-gray-100">
-        <h1 class="text-3xl font-extrabold text-gray-800 mb-6 text-center">Request a New Song</h1>
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-6 text-center">Log Your Music</h1>
         
         <form 
             id="song-form" 
@@ -23,54 +29,176 @@
             action="https://formspree.io/f/xnngwglb" 
             method="POST"
         >
-            <div>
-                <label for="songName" class="block text-sm font-semibold text-gray-700 mb-1">Song Name</label>
-                <input 
-                    type="text" 
-                    id="songName" 
-                    name="songName" 
-                    placeholder="Enter song title..."
-                    required 
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition duration-150 shadow-sm"
-                >
-            </div>
+            <div id="all-song-inputs" class="space-y-6">
+                <div id="song-group-0" class="song-group">
+                    <p class="text-sm font-bold text-gray-500 mb-2">Song A</p>
+                    
+                    <div>
+                        <label for="a_songname" class="block text-sm font-semibold text-gray-700 mb-1">Song Name</label>
+                        <input 
+                            type="text" 
+                            id="a_songname" 
+                            name="a_songname" 
+                            placeholder="Enter song title..."
+                            required 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition duration-150 shadow-sm"
+                        >
+                    </div>
 
-            <div>
-                <label for="artist" class="block text-sm font-semibold text-gray-700 mb-1">Artist Name</label>
-                <input 
-                    type="text" 
-                    id="artist" 
-                    name="artist" 
-                    placeholder="Enter artist name..."
-                    required 
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition duration-150 shadow-sm"
-                >
-            </div>
+                    <div>
+                        <label for="a_artist" class="block text-sm font-semibold text-gray-700 mb-1">Artist Name</label>
+                        <input 
+                            type="text" 
+                            id="a_artist" 
+                            name="a_artist" 
+                            placeholder="Enter artist name..."
+                            required 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition duration-150 shadow-sm"
+                        >
+                    </div>
+                </div> 
+                </div>
+            
+            <button 
+                type="button" 
+                id="add-song-button"
+                class="w-full py-2 border border-blue-600 text-blue-600 font-bold rounded-lg transition duration-200 ease-in-out transform hover:bg-blue-50 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300 mt-6"
+            >
+                + Add More Songs
+            </button>
 
             <button 
                 type="submit" 
                 id="submit-button"
-                class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg transition duration-200 ease-in-out transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:opacity-50"
+                class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg transition duration-200 ease-in-out transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:opacity-50 mt-4"
             >
-                Submit
+                Submit All to Formspree
             </button>
         </form>
     </div>
 
     <script>
         // --- CLIENT-SIDE JAVASCRIPT ---
-        // The original JS for google.script.run is no longer needed.
-        // Formspree handles the submission directly via the 'action' and 'method' attributes.
-        // Any custom success/error handling for Formspree submissions would typically be 
-        // done by adding a separate 'fetch' request instead of the native form submit, 
-        // but for a simple, working Formspree integration, the HTML attributes suffice.
+        
+        // Start counter at 1 because index 0 ('a') is the initial, static group
+        let songCount = 1; 
 
-        // If you wanted to keep the button state logic, you'd use this (optional):
+        /**
+         * Converts a numerical index (0, 1, 2...) into an alphabetical one (a, b, c...).
+         * @param {number} index - The numerical index (0 for 'a').
+         * @returns {string} The corresponding lowercase letter.
+         */
+        function getAlphabeticalIndex(index) {
+            // 'a'.charCodeAt(0) gives 97. Add the index to get the next letter code.
+            return String.fromCharCode('a'.charCodeAt(0) + index);
+        }
+
+        /**
+         * Creates and returns the HTML structure for a new song/artist input group.
+         * @param {number} index - The numerical index used to generate the field names.
+         * @returns {string} The HTML string for the new group.
+         */
+        function createNewSongGroup(index) {
+            const alphaIndex = getAlphabeticalIndex(index); // 'b', 'c', 'd', etc.
+            const alphaUpper = alphaIndex.toUpperCase(); // 'B', 'C', 'D', etc.
+
+            // Field names are set as ${alphaIndex}_songname and ${alphaIndex}_artist
+            const html = `
+                <div id="song-group-${index}" class="song-group pt-4 relative">
+                    <p class="text-sm font-bold text-gray-500 mb-2">Song ${alphaUpper}</p>
+                    
+                    <button type="button" data-index="${index}" class="remove-song-btn absolute top-3 right-0 text-red-500 hover:text-red-700 transition duration-150 p-1 text-sm font-medium rounded-full focus:outline-none focus:ring-2 focus:ring-red-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                    
+                    <div class="mb-4">
+                        <label for="${alphaIndex}_songname" class="block text-sm font-semibold text-gray-700 mb-1">Song Name</label>
+                        <input 
+                            type="text" 
+                            id="${alphaIndex}_songname" 
+                            name="${alphaIndex}_songname" 
+                            placeholder="Enter song title..."
+                            required 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition duration-150 shadow-sm"
+                        >
+                    </div>
+                    <div>
+                        <label for="${alphaIndex}_artist" class="block text-sm font-semibold text-gray-700 mb-1">Artist Name</label>
+                        <input 
+                            type="text" 
+                            id="${alphaIndex}_artist" 
+                            name="${alphaIndex}_artist" 
+                            placeholder="Enter artist name..."
+                            required 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition duration-150 shadow-sm"
+                        >
+                    </div>
+                </div>
+            `;
+            return html;
+        }
+
+        /**
+         * Adds a new song input group to the form.
+         */
+        function addSongGroup() {
+            const container = document.getElementById('all-song-inputs');
+            
+            if (songCount >= 26) {
+                alert("You've reached the maximum limit of 26 songs (A-Z).");
+                return;
+            }
+
+            // Create a temporary div to parse the HTML string
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = createNewSongGroup(songCount).trim();
+            const newGroup = tempDiv.firstChild;
+            
+            container.appendChild(newGroup);
+            songCount++; // Increment the global counter for the next addition
+            
+            // Re-attach listeners to all remove buttons
+            attachRemoveListeners();
+        }
+
+        /**
+         * Attaches click listeners to all 'Remove Song' buttons.
+         */
+        function attachRemoveListeners() {
+            document.querySelectorAll('.remove-song-btn').forEach(button => {
+                // Ensure listeners are only attached once
+                if (!button.dataset.listenerAttached) {
+                    button.addEventListener('click', (e) => {
+                        const indexToRemove = e.currentTarget.dataset.index;
+                        const groupToRemove = document.getElementById(`song-group-${indexToRemove}`);
+                        if (groupToRemove) {
+                            groupToRemove.remove();
+                        }
+                    });
+                    button.dataset.listenerAttached = 'true';
+                }
+            });
+        }
+
+
+        // Attach event listener to the "Add More Songs" button
+        document.getElementById('add-song-button').addEventListener('click', addSongGroup);
+        
+        // Listener for form submission to handle the "Submitting..." state
         document.getElementById('song-form').addEventListener('submit', function(e) {
             const submitButton = document.getElementById('submit-button');
             submitButton.disabled = true;
             submitButton.textContent = "Submitting...";
-            // Let the form proceed with the default POST action to Formspree
+        });
+
+        // Initialization Logic
+        document.addEventListener('DOMContentLoaded', () => {
+             // Remove the delete button from the initial, required song group (index 0)
+             const initialGroup = document.getElementById('song-group-0');
+             const initialRemoveBtn = initialGroup ? initialGroup.querySelector('.remove-song-btn') : null;
+             if(initialRemoveBtn) {
+                 initialRemoveBtn.remove();
+             }
         });
     </script>
 </body>
